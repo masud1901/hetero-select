@@ -40,7 +40,6 @@ figs/
 logs/
 *.log
 
-# --- Papers / drafts (keep local only) ------------------------------------
 *.pdf
 
 # --- LaTeX build artefacts (only relevant if the paper is added later) ---
