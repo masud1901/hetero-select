@@ -1,0 +1,55 @@
+/nas/home/jahin/.local/lib/python3.10/site-packages/torchvision/io/image.py:13: UserWarning: Failed to load image Python extension: '/nas/home/jahin/.local/lib/python3.10/site-packages/torchvision/image.so: undefined symbol: _ZN3c1017RegisterOperatorsD1Ev'If you don't plan on using image functionality from `torchvision.io`, you can ignore this warning. Otherwise, there might be something wrong with your environment. Did you have `libjpeg` or `libpng` installed before building `torchvision` from source?
+  warn(
+/nas/home/jahin/.local/lib/python3.10/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (1.26.5) or chardet (7.2.0)/charset_normalizer (3.4.4) doesn't match a supported version!
+  warnings.warn(
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TINYIMAGENET  ψ=40.0  seed=42  variant=adaptive  μ=0.1
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [  1] acc=0.0049  θ=1.000  β=0.850  Σmb=  194.1  Σt=    104s  wall=  211s [WARMUP]
+  [ 10] acc=0.0434  θ=0.279  β=0.937  Σmb= 1240.2  Σt=    930s  wall= 1911s
+  [ 20] acc=0.0638  θ=0.274  β=0.937  Σmb= 2388.6  Σt=   1872s  wall= 3821s
+  [ 30] acc=0.1016  θ=0.266  β=0.938  Σmb= 3481.0  Σt=   2802s  wall= 5866s
+  [ 40] acc=0.1332  θ=0.255  β=0.939  Σmb= 4571.7  Σt=   3737s  wall= 7902s
+  [ 50] acc=0.1744  θ=0.242  β=0.941  Σmb= 5616.1  Σt=   4690s  wall= 9967s
+  [ 60] acc=0.2239  θ=0.227  β=0.943  Σmb= 6614.0  Σt=   5579s  wall=12079s
+  [ 70] acc=0.2643  θ=0.210  β=0.945  Σmb= 7562.6  Σt=   6513s  wall=14210s
+  [ 80] acc=0.3053  θ=0.193  β=0.947  Σmb= 8447.7  Σt=   7365s  wall=16338s
+  [ 90] acc=0.3308  θ=0.177  β=0.949  Σmb= 9244.2  Σt=   8231s  wall=18467s
+  [100] acc=0.3547  θ=0.161  β=0.951  Σmb= 9996.1  Σt=   9060s  wall=20568s
+  [110] acc=0.3735  θ=0.147  β=0.952  Σmb=10677.2  Σt=   9857s  wall=22676s
+  [120] acc=0.3779  θ=0.136  β=0.954  Σmb=11307.2  Σt=  10575s  wall=24788s
+  [130] acc=0.3920  θ=0.127  β=0.955  Σmb=11888.9  Σt=  11323s  wall=26844s
+  [140] acc=0.3951  θ=0.122  β=0.955  Σmb=12444.4  Σt=  12136s  wall=28905s
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 244, in _feed
+    obj = _ForkingPickler.dumps(obj)
+  File "/usr/lib/python3.10/multiprocessing/reduction.py", line 51, in dumps
+    cls(buf, protocol).dump(obj)
+  File "/nas/home/jahin/.local/lib/python3.10/site-packages/torch/multiprocessing/reductions.py", line 296, in reduce_tensor
+    return (stat.st_ino, stat.st_dev)
+ModuleNotFoundError: No module named 'torch.nested._internal'
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 244, in _feed
+    obj = _ForkingPickler.dumps(obj)
+  File "/usr/lib/python3.10/multiprocessing/reduction.py", line 51, in dumps
+    cls(buf, protocol).dump(obj)
+  File "/nas/home/jahin/.local/lib/python3.10/site-packages/torch/multiprocessing/reductions.py", line 296, in reduce_tensor
+    return (stat.st_ino, stat.st_dev)
+ModuleNotFoundError: No module named 'torch.nested._internal'
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 244, in _feed
+    obj = _ForkingPickler.dumps(obj)
+  File "/usr/lib/python3.10/multiprocessing/reduction.py", line 51, in dumps
+    cls(buf, protocol).dump(obj)
+  File "/nas/home/jahin/.local/lib/python3.10/site-packages/torch/multiprocessing/reductions.py", line 296, in reduce_tensor
+    return (stat.st_ino, stat.st_dev)
+ModuleNotFoundError: No module named 'torch.nested._internal'
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 244, in _feed
+    obj = _ForkingPickler.dumps(obj)
+  File "/usr/lib/python3.10/multiprocessing/reduction.py", line 51, in dumps
+    cls(buf, protocol).dump(obj)
+  File "/nas/home/jahin/.local/lib/python3.10/site-packages/torch/multiprocessing/reductions.py", line 296, in reduce_tensor
+    return (stat.st_ino, stat.st_dev)
+ModuleNotFoundError: No module named 'torch.nested._internal'

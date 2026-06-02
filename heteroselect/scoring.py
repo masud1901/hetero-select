@@ -104,7 +104,7 @@ def score_clients(
     St = compute_staleness_scores(K, last_selected, rnd, fl["gamma_St"])
 
     S = (
-        V
+        fl.get("lambda_V", 1.0) * V
         + fl["lambda_D"]  * D
         + fl["lambda_F"]  * Fc
         + fl["lambda_St"] * St

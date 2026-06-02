@@ -1,0 +1,26 @@
+/nas/home/jahin/.local/lib/python3.10/site-packages/torchvision/io/image.py:13: UserWarning: Failed to load image Python extension: '/nas/home/jahin/.local/lib/python3.10/site-packages/torchvision/image.so: undefined symbol: _ZN3c1017RegisterOperatorsD1Ev'If you don't plan on using image functionality from `torchvision.io`, you can ignore this warning. Otherwise, there might be something wrong with your environment. Did you have `libjpeg` or `libpng` installed before building `torchvision` from source?
+  warn(
+/nas/home/jahin/.local/lib/python3.10/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (1.26.5) or chardet (7.2.0)/charset_normalizer (3.4.4) doesn't match a supported version!
+  warnings.warn(
+Files already downloaded and verified
+Files already downloaded and verified
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CIFAR100  ψ=40.0  seed=42  variant=adaptive  μ=0.05
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [  1] acc=0.0208  θ=1.000  β=0.850  Σmb=   88.2  Σt=     54s  wall=   33s [WARMUP]
+  [ 10] acc=0.1850  θ=0.277  β=0.937  Σmb=  708.3  Σt=    500s  wall=  326s
+  [ 20] acc=0.2801  θ=0.267  β=0.938  Σmb= 1346.2  Σt=    991s  wall=  659s
+  [ 30] acc=0.3454  θ=0.250  β=0.940  Σmb= 1977.3  Σt=   1488s  wall=  984s
+  [ 40] acc=0.3720  θ=0.228  β=0.943  Σmb= 2558.1  Σt=   1974s  wall= 1309s
+  [ 50] acc=0.4249  θ=0.203  β=0.946  Σmb= 3100.1  Σt=   2455s  wall= 1637s
+  [ 60] acc=0.4545  θ=0.177  β=0.949  Σmb= 3577.0  Σt=   2947s  wall= 1966s
+  [ 70] acc=0.4620  θ=0.154  β=0.951  Σmb= 4008.7  Σt=   3372s  wall= 2288s
+  [ 80] acc=0.4766  θ=0.136  β=0.954  Σmb= 4383.5  Σt=   3813s  wall= 2609s
+  [ 90] acc=0.4763  θ=0.124  β=0.955  Σmb= 4718.5  Σt=   4241s  wall= 2932s
+  [100] acc=0.5141  θ=0.120  β=0.956  Σmb= 5038.8  Σt=   4610s  wall= 3261s
+
+  RESULT  peak=0.5141  final=0.5141  drop=0.0000  target=✗
+  → results/long/cifar100_psi40p0_mu0p05_seed42_adaptive_retune.json
+
+✓  Wrote results/long/summary.json  (1 experiment(s))

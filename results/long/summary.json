@@ -1,0 +1,21 @@
+[
+  {
+    "dataset": "cifar100",
+    "psi": 40.0,
+    "mu": 0.05,
+    "seed": 42,
+    "variant": "adaptive",
+    "peak_acc": 0.5141,
+    "final_acc": 0.5141,
+    "mean_last10_acc": 0.49482,
+    "stability_drop": 0.0,
+    "rounds_to_target": null,
+    "time_to_target_s": null,
+    "traffic_to_target_mb": null,
+    "total_sim_time_s": 4609.57,
+    "total_traffic_mb": 5038.79,
+    "target_hit": false,
+    "model_params": 6621540,
+    "model_mb": 26.49
+  }
+]
