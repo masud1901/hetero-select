@@ -24,6 +24,14 @@ def adaptive_beta(theta_t: float, beta_min: float = 0.85, beta_max: float = 0.97
     return beta_min + (beta_max - beta_min) * (1.0 - theta_t)
 
 
+def resolve_beta(theta_t: float, fl: dict) -> float:
+    """Adaptive β by default; if fl['static_beta'] is set, return it verbatim."""
+    sb = fl.get("static_beta")
+    if sb is not None:
+        return float(sb)
+    return adaptive_beta(theta_t)
+
+
 def adaptive_ratios(
     scores: np.ndarray,
     selected: Sequence[int],

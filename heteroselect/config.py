@@ -26,6 +26,7 @@ DEFAULT_FL_CONFIG: Dict[str, Any] = dict(
     grad_clip         = 2.0,
     batch_size        = 32,
     eval_batches      = 8,
+    lambda_V          = 1.0,
     lambda_D          = 0.3,
     lambda_F          = 0.2,
     lambda_St         = 0.2,

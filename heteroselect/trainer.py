@@ -8,12 +8,12 @@ import torch
 
 from .client import fedprox_train
 from .compression import (
-    adaptive_beta,
     adaptive_ratios,
     compute_hess_diag,
     cosine_theta,
     get_layer_ranges,
     markov_sample_layers,
+    resolve_beta,
     topk_compress,
     uniform_ratios,
 )
@@ -107,7 +107,7 @@ def run_experiment(
             last_selected[k] = rnd
 
         theta_t = cosine_theta(rnd, fl)
-        beta_t = adaptive_beta(theta_t)
+        beta_t = resolve_beta(theta_t, fl)
         lr_base = fl["local_lr"] * (1.0 - 0.5 * min(rnd / fl["num_rounds"], 1.0))
 
         if variant == "stress":
@@ -136,9 +136,12 @@ def run_experiment(
         round_grads: Dict[int, torch.Tensor] = {}
 
         for i, k in enumerate(sel):
-            lr_k = min(
-                lr_base * (1.0 + float(scores[k])), fl["lr_scale_cap"]
-            )
+            if fl.get("uniform_lr"):
+                lr_k = lr_base
+            else:
+                lr_k = min(
+                    lr_base * (1.0 + float(scores[k])), fl["lr_scale_cap"]
+                )
             delta, local_model = fedprox_train(
                 model, loaders[k], fl["local_steps"],
                 lr_k, mu, device, fl["grad_clip"],
@@ -168,8 +171,12 @@ def run_experiment(
             scores_log.append(float(scores[k]))
             theta_k_log.append(float(theta_k[i]))
 
+        agg_scores = (
+            [1.0] * len(scores_log) if fl.get("uniform_aggregation")
+            else scores_log
+        )
         momentum_buf = score_weighted_aggregate(
-            model, compressed, scores_log, momentum_buf, fl["beta_s"],
+            model, compressed, agg_scores, momentum_buf, fl["beta_s"],
         )
 
         client_grads_prev.update(round_grads)

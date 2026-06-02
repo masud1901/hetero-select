@@ -44,6 +44,34 @@ def _parse_args() -> argparse.Namespace:
                    help="Override the FedProx proximal coefficient.")
     p.add_argument("--rounds", type=int, default=None,
                    help="Override the number of communication rounds.")
+    p.add_argument("--local-steps", type=int, default=None,
+                   help="Override the number of local-update steps per round.")
+    p.add_argument("--local-lr", type=float, default=None,
+                   help="Override the base local learning rate (default 0.05).")
+    p.add_argument("--lambda-V",  type=float, default=None,
+                   help="Override loss-informativeness weight (default 1.0).")
+    p.add_argument("--lambda-D",  type=float, default=None,
+                   help="Override diversity weight (default 0.3).")
+    p.add_argument("--lambda-F",  type=float, default=None,
+                   help="Override fairness weight (default 0.2).")
+    p.add_argument("--lambda-St", type=float, default=None,
+                   help="Override staleness weight (default 0.2).")
+    p.add_argument("--newton-Q",  type=int,   default=None,
+                   help="Override Newton-guided sparsifier layer budget Q.")
+    p.add_argument("--newton-lambda", type=float, default=None,
+                   help="Override Markov-mixing rate λ for layer sampling.")
+    p.add_argument("--static-beta", type=float, default=None,
+                   help="Use a fixed β for error-feedback decay (disables "
+                        "the adaptive β schedule).")
+    p.add_argument("--uniform-lr", action="store_true",
+                   help="Disable score-adaptive local LR (use lr_base for all "
+                        "selected clients).")
+    p.add_argument("--uniform-aggregation", action="store_true",
+                   help="Disable score-weighted server aggregation (use "
+                        "uniform 1/m weights).")
+    p.add_argument("--tag", type=str, default=None,
+                   help="Optional suffix appended to the output JSON filename "
+                        "(useful for ablation/long-train variants).")
     p.add_argument("--results-dir", type=str, default="results",
                    help="Where to write per-round JSON logs.")
     p.add_argument("--zip", action="store_true",
@@ -72,6 +100,26 @@ def main() -> None:
     fl = load_config(args.config) if args.config else dict(DEFAULT_FL_CONFIG)
     if args.rounds is not None:
         fl["num_rounds"] = args.rounds
+    if args.local_steps is not None:
+        fl["local_steps"] = args.local_steps
+    if args.local_lr is not None:
+        fl["local_lr"] = args.local_lr
+    for cli_name, fl_name in (
+        ("lambda_V",      "lambda_V"),
+        ("lambda_D",      "lambda_D"),
+        ("lambda_F",      "lambda_F"),
+        ("lambda_St",     "lambda_St"),
+        ("newton_Q",      "newton_Q"),
+        ("newton_lambda", "newton_lambda"),
+        ("static_beta",   "static_beta"),
+    ):
+        v = getattr(args, cli_name, None)
+        if v is not None:
+            fl[fl_name] = v
+    if args.uniform_lr:
+        fl["uniform_lr"] = True
+    if args.uniform_aggregation:
+        fl["uniform_aggregation"] = True
 
     experiments = _build_experiments(args)
     os.makedirs(args.results_dir, exist_ok=True)
@@ -100,9 +148,10 @@ def main() -> None:
         psi_str = str(cfg["psi"]).replace(".", "p")
         mu_str = str(cfg.get("mu", fl["mu"])).replace(".", "p")
         variant = cfg.get("variant", "adaptive")
+        tag = f"_{args.tag}" if args.tag else ""
         fname = os.path.join(
             args.results_dir,
-            f"{ds_name}_psi{psi_str}_mu{mu_str}_seed{cfg['seed']}_{variant}.json",
+            f"{ds_name}_psi{psi_str}_mu{mu_str}_seed{cfg['seed']}_{variant}{tag}.json",
         )
         with open(fname, "w") as f:
             json.dump(result, f, indent=2)

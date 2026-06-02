@@ -1,0 +1,21 @@
+[
+  {
+    "dataset": "tinyimagenet",
+    "psi": 120.0,
+    "mu": 0.1,
+    "seed": 42,
+    "variant": "adaptive",
+    "peak_acc": 0.2915,
+    "final_acc": 0.2905,
+    "mean_last10_acc": 0.28456,
+    "stability_drop": 0.001,
+    "rounds_to_target": null,
+    "time_to_target_s": null,
+    "traffic_to_target_mb": null,
+    "total_sim_time_s": 5696.66,
+    "total_traffic_mb": 8105.478,
+    "target_hit": false,
+    "model_params": 11271432,
+    "model_mb": 45.09
+  }
+]
