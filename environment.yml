@@ -1,0 +1,19 @@
+# Example conda environment for reproducing HeteRo-Select experiments.
+# Adjust cuda version to match your GPU driver.
+name: heteroselect
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pytorch>=2.1
+  - torchvision>=0.16
+  - numpy>=1.24
+  - matplotlib>=3.7
+  - pyyaml>=6.0
+  - pytest>=7.4
+  - pip
+  - pip:
+    - -e .

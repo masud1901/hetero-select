@@ -18,65 +18,52 @@ from torch.utils.data import DataLoader
 from heteroselect.config import (
     DEFAULT_FL_CONFIG,
     ablation_experiments,
+    component_ablation_experiments,
     default_experiments,
     load_config,
 )
 from heteroselect.data import load_data
 from heteroselect.trainer import run_experiment
 from heteroselect.utils import seed_everything
+from heteroselect.variants import VARIANT_CHOICES
 
 
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="HeteRo-Select training driver")
     p.add_argument("--config", type=str, default=None,
-                   help="Optional YAML/JSON file overlaying DEFAULT_FL_CONFIG.")
-    p.add_argument("--grid", choices=["main", "ablation", "all"], default=None,
-                   help="Predefined experiment grid. Overrides the single-run flags.")
+                   help="Optional YAML/JSON overlay on DEFAULT_FL_CONFIG.")
+    p.add_argument("--grid", choices=["main", "ablation", "component", "all"],
+                   default=None,
+                   help="Predefined experiment grid (overrides single-run flags).")
     p.add_argument("--dataset",
                    choices=["mnist", "cifar10", "cifar100", "tinyimagenet"],
                    default="cifar10")
     p.add_argument("--psi", type=float, default=0.4,
-                   help="psi-LDA concentration for CIFAR-10, or # missing classes for CIFAR-100.")
+                   help="psi-LDA concentration (MNIST/CIFAR-10) or missing classes.")
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--variant", choices=["adaptive", "uniform", "stress"],
-                   default="adaptive")
+    p.add_argument("--variant", choices=list(VARIANT_CHOICES), default="adaptive")
     p.add_argument("--mu", type=float, default=None,
-                   help="Override the FedProx proximal coefficient.")
-    p.add_argument("--rounds", type=int, default=None,
-                   help="Override the number of communication rounds.")
-    p.add_argument("--local-steps", type=int, default=None,
-                   help="Override the number of local-update steps per round.")
-    p.add_argument("--local-lr", type=float, default=None,
-                   help="Override the base local learning rate (default 0.05).")
-    p.add_argument("--lambda-V",  type=float, default=None,
-                   help="Override loss-informativeness weight (default 1.0).")
-    p.add_argument("--lambda-D",  type=float, default=None,
-                   help="Override diversity weight (default 0.3).")
-    p.add_argument("--lambda-F",  type=float, default=None,
-                   help="Override fairness weight (default 0.2).")
-    p.add_argument("--lambda-St", type=float, default=None,
-                   help="Override staleness weight (default 0.2).")
-    p.add_argument("--newton-Q",  type=int,   default=None,
-                   help="Override Newton-guided sparsifier layer budget Q.")
-    p.add_argument("--newton-lambda", type=float, default=None,
-                   help="Override Markov-mixing rate λ for layer sampling.")
+                   help="Override FedProx proximal coefficient.")
+    p.add_argument("--rounds", type=int, default=None)
+    p.add_argument("--local-steps", type=int, default=None)
+    p.add_argument("--local-lr", type=float, default=None)
+    p.add_argument("--lambda-V", type=float, default=None)
+    p.add_argument("--lambda-D", type=float, default=None)
+    p.add_argument("--lambda-F", type=float, default=None)
+    p.add_argument("--lambda-St", type=float, default=None)
+    p.add_argument("--newton-Q", type=int, default=None)
+    p.add_argument("--newton-lambda", type=float, default=None)
     p.add_argument("--static-beta", type=float, default=None,
-                   help="Use a fixed β for error-feedback decay (disables "
-                        "the adaptive β schedule).")
+                   help="Fixed error-feedback beta (disables adaptive schedule).")
     p.add_argument("--uniform-lr", action="store_true",
-                   help="Disable score-adaptive local LR (use lr_base for all "
-                        "selected clients).")
+                   help="Use uniform local LR (same as --variant uniform_lr).")
     p.add_argument("--uniform-aggregation", action="store_true",
-                   help="Disable score-weighted server aggregation (use "
-                        "uniform 1/m weights).")
+                   help="FedAvg aggregation (same as --variant uniform_agg).")
     p.add_argument("--tag", type=str, default=None,
-                   help="Optional suffix appended to the output JSON filename "
-                        "(useful for ablation/long-train variants).")
-    p.add_argument("--results-dir", type=str, default="results",
-                   help="Where to write per-round JSON logs.")
-    p.add_argument("--zip", action="store_true",
-                   help="Pack results/ into results.zip after the run.")
-    p.add_argument("--quiet", action="store_true", help="Suppress per-round logs.")
+                   help="Suffix for output JSON filename.")
+    p.add_argument("--results-dir", type=str, default="results")
+    p.add_argument("--zip", action="store_true")
+    p.add_argument("--quiet", action="store_true")
     return p.parse_args()
 
 
@@ -85,8 +72,14 @@ def _build_experiments(args: argparse.Namespace) -> List[Dict[str, Any]]:
         return default_experiments()
     if args.grid == "ablation":
         return ablation_experiments()
+    if args.grid == "component":
+        return component_ablation_experiments()
     if args.grid == "all":
-        return default_experiments() + ablation_experiments()
+        return (
+            default_experiments()
+            + ablation_experiments()
+            + component_ablation_experiments()
+        )
     cfg: Dict[str, Any] = dict(
         dataset=args.dataset, psi=args.psi, seed=args.seed, variant=args.variant,
     )
@@ -105,15 +98,15 @@ def main() -> None:
     if args.local_lr is not None:
         fl["local_lr"] = args.local_lr
     for cli_name, fl_name in (
-        ("lambda_V",      "lambda_V"),
-        ("lambda_D",      "lambda_D"),
-        ("lambda_F",      "lambda_F"),
-        ("lambda_St",     "lambda_St"),
-        ("newton_Q",      "newton_Q"),
+        ("lambda_V", "lambda_V"),
+        ("lambda_D", "lambda_D"),
+        ("lambda_F", "lambda_F"),
+        ("lambda_St", "lambda_St"),
+        ("newton_Q", "newton_Q"),
         ("newton_lambda", "newton_lambda"),
-        ("static_beta",   "static_beta"),
+        ("static_beta", "static_beta"),
     ):
-        v = getattr(args, cli_name, None)
+        v = getattr(args, cli_name.replace("-", "_"), None)
         if v is not None:
             fl[fl_name] = v
     if args.uniform_lr:
@@ -129,7 +122,6 @@ def main() -> None:
 
     for cfg in experiments:
         rng = seed_everything(cfg["seed"])
-
         ds_name = cfg["dataset"]
         if ds_name not in cache:
             train_ds, test_ds = load_data(ds_name)
@@ -155,7 +147,7 @@ def main() -> None:
         )
         with open(fname, "w") as f:
             json.dump(result, f, indent=2)
-        print(f"  → {fname}")
+        print(f"  -> {fname}")
 
         row: Dict[str, Any] = dict(
             dataset=ds_name, psi=cfg["psi"],
@@ -167,7 +159,7 @@ def main() -> None:
     summary_path = os.path.join(args.results_dir, "summary.json")
     with open(summary_path, "w") as f:
         json.dump(all_rows, f, indent=2)
-    print(f"\n✓  Wrote {summary_path}  ({len(all_rows)} experiment(s))")
+    print(f"\nWrote {summary_path}  ({len(all_rows)} experiment(s))")
 
     if args.zip:
         zip_path = "results.zip"
@@ -176,7 +168,7 @@ def main() -> None:
                 for fn in files:
                     full = os.path.join(root, fn)
                     zf.write(full, os.path.relpath(full, start=args.results_dir))
-        print(f"✓  Packaged {zip_path}")
+        print(f"Packaged {zip_path}")
 
 
 if __name__ == "__main__":

@@ -52,28 +52,28 @@ def main() -> None:
         key = (r["dataset"], r["psi"], r["mu"], r["variant"])
         groups[key].append(r)
 
-    print("\n" + "═" * 110)
+    print("\n" + "=" * 110)
     print("HETERO-SELECT  —  RESULTS")
-    print("═" * 110)
+    print("=" * 110)
     print(
-        f"{'Dataset':10} {'ψ':5} {'μ':5} {'Variant':10} "
+        f"{'Dataset':10} {'psi':5} {'mu':5} {'Variant':12} "
         f"{'Peak%':16} {'Final%':16} {'Drop%':10} "
-        f"{'Traffic(MB)':16} {'Time(s)':14}"
+        f"{'R->tgt':8} {'Traffic(MB)':16} {'Time(s)':14}"
     )
-    print("─" * 110)
+    print("-" * 110)
+
     for (ds, psi, mu, var), runs in sorted(groups.items()):
         print(
-            f"{ds:10} {str(psi):<5} {mu:<5} {var:10} "
+            f"{ds:10} {str(psi):<5} {mu:<5} {var:12} "
             f"{_ms([r['peak_acc'] for r in runs]):16} "
             f"{_ms([r['final_acc'] for r in runs]):16} "
             f"{_ms([r['stability_drop'] for r in runs]):10} "
+            f"{_ms([r['rounds_to_target'] for r in runs if r['rounds_to_target'] is not None]):8} "
             f"{_ms([r['traffic_to_target_mb'] for r in runs]):16} "
-            f"{_ms([r['time_to_target_s']     for r in runs]):14}"
+            f"{_ms([r['time_to_target_s'] for r in runs]):14}"
         )
-    print("─" * 110)
-    print("FedCG simulation targets (Fig. 3, 100 clients):")
-    print("  CIFAR-10:  Acc=70%  Time=5170s   Traffic≈2480 MB")
-    print("  CIFAR-100: Acc=54%  Time=10069s  Traffic=8402 MB")
+
+    print("-" * 110)
 
 
 if __name__ == "__main__":

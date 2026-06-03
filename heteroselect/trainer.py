@@ -23,6 +23,7 @@ from .scoring import score_clients, softmax_select
 from .server import calibrate_bn, evaluate, score_weighted_aggregate
 from .simulator import sim_round_time, sim_traffic_mb
 from .utils import get_device
+from .variants import apply_variant
 
 
 def run_experiment(
@@ -41,8 +42,10 @@ def run_experiment(
 
     dataset = cfg["dataset"]
     variant = cfg.get("variant", "adaptive")
-    mu = cfg.get("mu", fl["mu"])
     seed = cfg["seed"]
+    mu = cfg.get("mu", fl["mu"])
+    fl = apply_variant(fl, variant, mu)
+    mu = fl["mu"]
 
     if verbose:
         bar = "━" * 68
@@ -147,7 +150,7 @@ def run_experiment(
                 lr_k, mu, device, fl["grad_clip"],
             )
 
-            if rnd > fl["warmup_rounds"]:
+            if rnd > fl["warmup_rounds"] and fl["newton_Q"] > 0:
                 sel_layers = markov_sample_layers(
                     markov_masks[k], layer_ranges,
                     fl["newton_Q"], fl["newton_lambda"], rng,
