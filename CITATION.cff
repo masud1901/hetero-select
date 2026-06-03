@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite the accompanying paper."
-title: "HeteRo-Select: Informativeness-Aware Client Selection and Gradient Compression for Communication-Efficient Federated Learning"
+message: "If you use this software, please acknowledge the authors."
+title: "HeteRo-Select: Informativeness as the Participation Driver in Heterogeneous Federated Learning"
 authors:
   - family-names: Masud
     given-names: M. A.
@@ -26,15 +26,3 @@ keywords:
   - non-iid
   - communication-efficiency
   - error-feedback
-preferred-citation:
-  type: article
-  title: "HeteRo-Select: Informativeness-Aware Client Selection and Gradient Compression for Communication-Efficient Federated Learning"
-  authors:
-    - family-names: Masud
-      given-names: M. A.
-    - family-names: Jahin
-      given-names: Md Abrar
-    - family-names: Hasan
-      given-names: M.
-  year: 2026
-  journal: "Manuscript under review"

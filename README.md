@@ -6,21 +6,35 @@ Official PyTorch implementation of **HeteRo-Select: Informativeness as the Parti
 
 HeteRo-Select drives client selection, compression ratio, and server aggregation from one normalized informativeness score; bandwidth is a hard ceiling only. Local learning rate can be score-adaptive (primary runs) or uniform (ablation; see paper Sec. VI-B).
 
-## Performance vs. State-of-the-Art (FedCG)
+## Table I — Resource overhead to target accuracy
 
-We evaluate against **FedCG** (Jiang et al., IEEE INFOCOM 2023 / IEEE TMC 2024 [1]). FedCG assigns compression ratios primarily from client bandwidth; HeteRo-Select allocates compression from statistical informativeness, with bandwidth as an upper bound only.
+FedCG-matched 100-client simulation (K=100, M=10, H=50, T=100). Targets: CIFAR-10 **70%**, CIFAR-100 **54%** (FedCG protocol). **HeteRo-Select** = mean ± std over seeds 42–44. Rows marked † are **reported baseline numbers** from the FedCG simulation protocol (not re-run in this repo). CIFAR-100 entries are **cumulative at round 100** (54% target not reached).
 
-Under the matched 100-client simulation protocol on CIFAR-10 (mean ± std over seeds 42–44):
+| Method | C10 Time (s) | C10 Traffic (MB) | C100 Time (s) | C100 Traffic (MB) |
+| --- | ---: | ---: | ---: | ---: |
+| FedAvg † | 15,932 | 15,199 | 35,048 | 32,551 |
+| OptRate † | 9,697 | 6,193 | 24,521 | 15,582 |
+| FlexCom † | 5,334 | 2,674 | 17,726 | 8,583 |
+| AdaSample † | 6,968 | 11,984 | 19,723 | 34,570 |
+| FedCG † | 5,170 | 2,480 | 10,069 | 8,402 |
+| **HeteRo-Select** | **2,906 ± 41** | **2,030 ± 19** | **4,549 ± 89** | **5,010 ± 19** |
 
-| Metric | HeteRo-Select | FedCG (cited [1]) | Improvement |
-| --- | --- | --- | --- |
-| **Accuracy (Round 100)** | **72.56% ± 0.34%** | 70.00% | **+2.56 pts** |
-| **Time to 70%** | **2,906s ± 41s** | 5,170s | **1.78× faster** |
-| **Traffic to 70%** | **2,030 MB ± 19 MB** | 2,480 MB | **−18.2% less** |
+**Accuracy at round 100 (HeteRo-Select, 3 seeds):** CIFAR-10 **72.56% ± 0.34%**; CIFAR-100 **49.44% ± 0.12%** (bundled runs in `results/experiment/`).
 
 **Stress test:** `--variant stress` still reaches 70% on CIFAR-10 with **1,869 MB** simulated traffic (seed 42).
 
-**CIFAR-100:** At round 100, HeteRo-Select uses about **59.6%** of FedCG's cited traffic and **45.2%** of cited simulated time (54% target not reached in 100 rounds).
+## Table III — Cross-scale generalization
+
+Same configuration as Table I (μ=0.1, seed 42; no hyperparameter retuning). Three successful benchmarks span ~3,400× in model size.
+
+| Dataset / Model | Params | Peak (%) | R→target | Time (s) | Traffic (MB) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| MNIST / LogReg | 7,850 | 91.94 | 5 | 118.3 | 0.61 |
+| CIFAR-10 / AlexNet | 2.78M | 73.03 | 83 | 2,913 | 2,010 |
+| CIFAR-100 / ResNet9 | 6.62M | 49.44 | — | — | — |
+| TinyImageNet / ResNet-18 | 11.27M | 33.53 | 79 | 4,622 | 7,061 |
+
+Bundled JSON for these runs: `results/experiment/`.
 
 ## Installation
 
@@ -68,7 +82,7 @@ Theory and proofs: paper Sec. IV / Appendix A.
 
 ## Assumptions and simulation protocol
 
-Single-machine simulator aligned with FedCG's 100-client simulation [1, Sec. VI-C]:
+Single-machine simulator aligned with the FedCG 100-client simulation protocol:
 
 | Setting | Value |
 | --- | --- |
@@ -137,9 +151,9 @@ CLI equivalents: `--uniform-lr`, `--uniform-aggregation`, `--static-beta 0.9`, `
 | Component ablations (Table II) | `python scripts/train.py --grid component --results-dir results/ablation_v2` | no_V, no_D, no_FS, no_newton, static_beta, uniform_lr, uniform_agg |
 | All | `python scripts/train.py --grid all --results-dir results/ --zip` | Union of the above |
 
-## Baselines (cited, not re-run)
+## Baselines (reported, not re-run)
 
-FedAvg, OptRate, FlexCom, AdaSample, and FedCG scalars/curves are **from Jiang et al. [1]** (digitized in `figures-combined/`). Only HeteRo-Select is executed in this repo.
+FedAvg, OptRate, FlexCom, AdaSample, and FedCG scalars/curves are **reported numbers** from the FedCG simulation protocol (digitized in `figures-combined/`). Only HeteRo-Select is executed in this repo.
 
 ## Reproducing paper results (seed 42)
 
@@ -204,24 +218,8 @@ scripts/
 configs/default.yaml
 tests/test_smoke.py
 results/            # bundled JSON logs
-figures-combined/   # cited FedCG baseline curves
+figures-combined/   # FedCG baseline curves (reported protocol)
 figs/               # bundled paper figures (gitignored; regenerate locally)
-```
-
-## References
-
-[1] Z. Jiang et al., "Federated learning with client selection and gradient compression in heterogeneous edge systems," *IEEE INFOCOM*, 2023; *IEEE Trans. Mobile Comput.*, 2024.
-
-## Citation
-
-```bibtex
-@inproceedings{masud2026heteroselect,
-  title   = {HeteRo-Select: Informativeness as the Participation Driver in
-             Heterogeneous Federated Learning},
-  author  = {Masud, M. A. and Jahin, Md Abrar and Hasan, M.},
-  booktitle = {IEEE International Conference on Data Mining (ICDM)},
-  year    = {2026}
-}
 ```
 
 ## License
