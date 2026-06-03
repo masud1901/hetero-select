@@ -1,8 +1,8 @@
 # HeteRo-Select
 
-Official PyTorch implementation of **HeteRo-Select: Informativeness-Aware Client Selection and Gradient Compression for Communication-Efficient Federated Learning** (Masud, Jahin, & Hasan).
+Official PyTorch implementation of **HeteRo-Select: Informativeness as the Participation Driver in Heterogeneous Federated Learning**.
 
-**Repository:** https://github.com/masud1901/hetero-select
+---
 
 HeteRo-Select drives client selection, compression ratio, local learning rate, and server aggregation from one normalized informativeness score; bandwidth is a hard ceiling only.
 
@@ -109,18 +109,4 @@ tests/          # smoke test
 
 Key defaults live in `heteroselect.config.DEFAULT_FL_CONFIG` (or `configs/default.yaml`).
 
-## Citation
 
-```bibtex
-@article{masud2026heteroselect,
-  title   = {HeteRo-Select: Informativeness-Aware Client Selection and Gradient
-             Compression for Communication-Efficient Federated Learning},
-  author  = {Masud, M. A. and Jahin, Md Abrar and Hasan, M.},
-  journal = {Manuscript under review},
-  year    = {2026}
-}
-```
-
-## License
-
-MIT — see [LICENSE](LICENSE).
