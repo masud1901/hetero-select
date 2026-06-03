@@ -1,16 +1,16 @@
 # HeteRo-Select
 
-Official PyTorch implementation of **HeteRo-Select: Informativeness-Aware Client Selection and Gradient Compression for Communication-Efficient Federated Learning** (Masud, Jahin, & Hasan).
+Official PyTorch implementation of **HeteRo-Select: Informativeness as the Participation Driver in Heterogeneous Federated Learning** (Masud, Jahin, & Hasan).
 
 **Repository:** https://github.com/masud1901/hetero-select
 
-HeteRo-Select drives client selection, compression ratio, local learning rate, and server aggregation from one normalized informativeness score; bandwidth is a hard ceiling only.
+HeteRo-Select drives client selection, compression ratio, and server aggregation from one normalized informativeness score; bandwidth is a hard ceiling only. Local learning rate can be score-adaptive (primary runs) or uniform (ablation; see paper Sec. VI-B).
 
 ## Performance vs. State-of-the-Art (FedCG)
 
-We evaluate against **FedCG** (Jiang et al., *Heterogeneity-Aware Federated Learning with Adaptive Client Selection and Gradient Compression*, **IEEE INFOCOM 2023** [1]). FedCG assigns compression ratios primarily from client bandwidth; HeteRo-Select allocates compression from statistical informativeness, with bandwidth as an upper bound only.
+We evaluate against **FedCG** (Jiang et al., IEEE INFOCOM 2023 / IEEE TMC 2024 [1]). FedCG assigns compression ratios primarily from client bandwidth; HeteRo-Select allocates compression from statistical informativeness, with bandwidth as an upper bound only.
 
-Under the matched 100-client simulation protocol on CIFAR-10 (mean ± std over seeds 42–44), HeteRo-Select reports:
+Under the matched 100-client simulation protocol on CIFAR-10 (mean ± std over seeds 42–44):
 
 | Metric | HeteRo-Select | FedCG (cited [1]) | Improvement |
 | --- | --- | --- | --- |
@@ -18,9 +18,9 @@ Under the matched 100-client simulation protocol on CIFAR-10 (mean ± std over s
 | **Time to 70%** | **2,906s ± 41s** | 5,170s | **1.78× faster** |
 | **Traffic to 70%** | **2,030 MB ± 19 MB** | 2,480 MB | **−18.2% less** |
 
-**Stress test:** With bandwidth inverted against local loss (`--variant stress`), HeteRo-Select still reaches 70% on CIFAR-10 using **1,869 MB** simulated traffic (seed 42).
+**Stress test:** `--variant stress` still reaches 70% on CIFAR-10 with **1,869 MB** simulated traffic (seed 42).
 
-**CIFAR-100:** At round 100, HeteRo-Select uses about **59.6%** of FedCG's cited traffic and **45.2%** of cited simulated time (target 54% not reached in 100 rounds).
+**CIFAR-100:** At round 100, HeteRo-Select uses about **59.6%** of FedCG's cited traffic and **45.2%** of cited simulated time (54% target not reached in 100 rounds).
 
 ## Installation
 
@@ -30,11 +30,11 @@ Under the matched 100-client simulation protocol on CIFAR-10 (mean ± std over s
 pip install -e .
 # or: pip install -r requirements.txt
 
-# optional: conda env with pinned versions (see environment.yml)
+# optional: conda env (see environment.yml)
 # conda env create -f environment.yml && conda activate heteroselect
 ```
 
-**Smoke test** (2 rounds, CPU, ~1 min):
+**Smoke test** (2 rounds, CPU):
 
 ```bash
 pytest tests/test_smoke.py
@@ -50,88 +50,54 @@ python scripts/train.py --dataset cifar10 --psi 0.4 --seed 42 --rounds 5
 python scripts/train.py --dataset cifar10 --psi 0.4 --seed 42
 ```
 
-Each run writes a JSON log to `results/<dataset>_psi<psi>_mu<mu>_seed<seed>_<variant>.json` containing per-round metrics and a `summary` block.
+Logs: `results/<dataset>_psi<psi>_mu<mu>_seed<seed>_<variant>.json`
 
-## Algorithm (code map and paper)
+## Algorithm (code map)
 
-Each federated round:
+Each federated round (`heteroselect/trainer.py`):
 
-1. **Score** all clients: loss (V), gradient diversity (D), fairness (F), staleness (St) → normalized `S_k` — `heteroselect/scoring.py`
-2. **Select** M=10 clients via temperature-scaled softmax — `scoring.softmax_select`
-3. **Compress** with cosine global budget `theta_t` and score-proportional per-client `theta_k` capped by bandwidth — `heteroselect/compression.py`
-4. **Train** locally with FedProx and score-scaled learning rate — `heteroselect/client.py`
-5. **Aggregate** with score-weighted server momentum — `heteroselect/server.py`
+1. **Score** — loss V, diversity D, fairness F, staleness St → `S_k` (`heteroselect/scoring.py`)
+2. **Select** — M=10 via softmax (`scoring.softmax_select`)
+3. **Compress** — cosine `theta_t`, score-proportional `theta_k` (`heteroselect/compression.py`)
+4. **Train** — FedProx + optional score-scaled LR (`heteroselect/client.py`)
+5. **Aggregate** — score-weighted server momentum (`heteroselect/server.py`)
 
-Orchestration: `heteroselect/trainer.py` · Entry point: `scripts/train.py`
+**Ablations** are selected via `--variant` and implemented in `heteroselect/variants.py` (see table below).
 
-Full mathematical specification, assumptions, and Algorithm 1 are in the paper (Sec. III). **Theoretical claims** (Theorems IV.1–IV.2) and **proofs** are in the paper (Sec. IV, Appendix A); this repository provides the empirical simulator only.
-
-**Per-round complexity** (paper Sec. III.H): scoring costs O(K) forward passes on 8 mini-batches per client; training dominates at O(M·H·N) for M selected clients, H local steps, and N parameters, plus one Hutchinson Hessian-vector product per selected client on Q=3 Markov-sampled layers.
+Theory and proofs: paper Sec. IV / Appendix A.
 
 ## Assumptions and simulation protocol
 
-This code implements a **single-machine simulator** aligned with FedCG's **100-client simulation** (INFOCOM 2023, Sec. VI-C) [1]:
+Single-machine simulator aligned with FedCG's 100-client simulation [1, Sec. VI-C]:
 
 | Setting | Value |
 | --- | --- |
 | Clients K | 100 |
-| Selected per round M | 10 |
+| Selected M | 10 |
 | Local steps H | 50 |
 | Rounds T | 100 |
-| Local optimizer | FedProx, mu = 0.1 |
-| Uplink bandwidth | B_k ~ Uniform[1, 5] Mb/s per client per round |
-| Per-step compute time | T_k,cmp ~ Uniform[0.1, 0.5] s |
-| Communication time (uplink) | theta_k · 32N / B_k |
-| Round time | max over selected k of (t_com,k + H · T_k,cmp) |
+| FedProx mu | 0.1 |
+| Bandwidth | B_k ~ Uniform[1, 5] Mb/s per client per round |
+| Compute | T_k,cmp ~ Uniform[0.1, 0.5] s per local step |
 
-Bandwidth is drawn uniformly each round (`variant=adaptive`). **`variant=stress`** assigns bandwidth inversely to normalized local loss (adversarial coupling test). **`variant=uniform`** uses a fixed per-client compression ratio `theta_k = theta_t`.
-
-No real distributed network or multi-process FL is used; simulated time and traffic are analytic (see **Metrics**).
+Variants: `adaptive` (default), `uniform` (fixed theta_k), `stress` (bandwidth vs loss inverted).
 
 ## Datasets and partitioning
 
-| Dataset | Train / test | Classes | Model | Params | Target acc. | Source |
-| --- | --- | --- | --- | ---: | ---: | --- |
-| MNIST | 60k / 10k | 10 | Logistic regression | 7.85K | 90% | torchvision |
-| CIFAR-10 | 50k / 10k | 10 | AlexNet | 2.78M | 70% | [CIFAR](https://www.cs.toronto.edu/~kriz/cifar.html) |
-| CIFAR-100 | 50k / 10k | 100 | ResNet9 | 6.62M | 54% | torchvision |
-| TinyImageNet | 100k / 10k | 200 | ResNet-18 (64x64 stem) | 11.27M | 30% | [CS231N](http://cs231n.stanford.edu/tiny-imagenet-200.zip) |
+| Dataset | Train / test | Model | Target | Partition |
+| --- | --- | --- | ---: | --- |
+| MNIST | 60k / 10k | Logistic reg | 90% | psi-LDA, psi=0.4 |
+| CIFAR-10 | 50k / 10k | AlexNet | 70% | psi-LDA, psi=0.4 |
+| CIFAR-100 | 50k / 10k | ResNet9 | 54% | 40 missing classes |
+| TinyImageNet | 100k / 10k | ResNet-18 | 30% | 80 missing classes |
 
-**Splits:** Standard dataset train/test splits only; no validation hold-out; no examples excluded beyond the official test sets.
-
-**Partitioning** (`heteroselect/data.py`, function `partition_data`):
-
-- **MNIST / CIFAR-10:** psi-LDA-style — fraction psi of each client's ~500 samples from one dominant class, remainder spread over other classes (`psi=0.4` primary).
-- **CIFAR-100 / TinyImageNet:** Skewed-label — each client lacks psi classes (40 or 80 missing classes respectively; integer psi in config).
-
-**Preprocessing:** Random crop (pad 4) + horizontal flip + normalization for RGB sets; MNIST tensor + normalize only. TinyImageNet: unzip to `data/tiny-imagenet-200/` (not auto-downloaded).
-
-**BatchNorm:** After aggregation, BN statistics are recalibrated on up to 20 batches from the first three selected clients for CIFAR-100 and TinyImageNet (`server.calibrate_bn`).
+TinyImageNet: unzip to `data/tiny-imagenet-200/`. See `heteroselect/data.py`.
 
 ## Metrics
 
-All test metrics use the **global model on the official test loader** after each round (`server.evaluate`).
+Key JSON `summary` fields: `peak_acc`, `final_acc`, `rounds_to_target`, `time_to_target_s`, `traffic_to_target_mb`, `total_sim_time_s`, `total_traffic_mb`, `wall_s` (actual machine time).
 
-| Field (JSON `summary`) | Definition |
-| --- | --- |
-| `peak_acc` | Maximum test accuracy over all rounds |
-| `final_acc` | Test accuracy at round T |
-| `mean_last10_acc` | Mean test accuracy over the last 10 rounds |
-| `stability_drop` | `peak_acc` minus `final_acc` |
-| `rounds_to_target` | First round where test acc >= dataset target (see `target_acc` in config); null if never |
-| `time_to_target_s` | Cumulative **simulated** time at that round |
-| `traffic_to_target_mb` | Cumulative **simulated uplink** traffic (MB) at that round |
-| `total_sim_time_s` | Sum of per-round simulated wall times |
-| `total_traffic_mb` | Sum over rounds of (sum over selected k of theta_k · model_mb) |
-| `target_hit` | Whether `rounds_to_target` is set |
-
-**Per-round JSON** also logs `sim_time_s`, `sim_traffic_mb`, `cum_time_s`, `cum_traffic_mb`, and **`wall_s`** (actual elapsed time on the machine running the simulator).
-
-**Simulated traffic** does not include downlink or protocol overhead; it matches the paper's uplink-only accounting. **Simulated time** is not the same as `wall_s`; paper tables use simulated time/traffic unless noted.
-
-**Targets** (`configs/default.yaml`): MNIST 90%, CIFAR-10 70%, CIFAR-100 54%, TinyImageNet 30%.
-
-Aggregate multi-seed results:
+Paper tables use **simulated** uplink time/traffic, not `wall_s`.
 
 ```bash
 python scripts/print_table.py results/experiment/
@@ -139,149 +105,121 @@ python scripts/print_table.py results/experiment/
 
 ## Hyperparameters
 
-Primary configuration is fixed **a priori** (no validation search). Defaults: `configs/default.yaml` and `heteroselect/config.py` (`DEFAULT_FL_CONFIG`).
+Defaults: `configs/default.yaml`, `heteroselect/config.py`.
 
-| Symbol / key | Value | Role |
-| --- | ---: | --- |
-| `theta_total` | 0.20 | Mean compression budget (theta_avg) |
-| `theta_floor` | 0.08 | Minimum theta_t |
-| `warmup_rounds` | 1 | Round 1 uses full theta = 1 |
-| `alpha_cos` | 0.4 | Cosine schedule on theta_t |
-| `mu` | 0.1 | FedProx proximal coefficient |
-| `local_lr` | 0.05 | Base eta_0 (decays over rounds) |
-| `lr_scale_cap` | 0.15 | Cap on score-scaled LR |
-| `lambda_V`, `lambda_D`, `lambda_F`, `lambda_St` | 1.0, 0.3, 0.2, 0.2 | Score weights |
-| `gamma_St` | 0.5 | Staleness log scale |
-| `tau_0` | 1.0 | Initial softmax temperature |
-| `beta_s` | 0.5 | Server momentum |
-| `newton_Q` | 3 | Markov-Newton layer budget |
-| `newton_lambda` | 0.2 | Markov mixing rate |
-| `grad_clip` | 2.0 | Global grad norm clip |
-| `batch_size` | 32 | Local / eval mini-batch |
-| `eval_batches` | 8 | Batches per client for scoring |
+Primary: `theta_total=0.20`, `warmup_rounds=1`, `alpha_cos=0.4`, `lambda_D/F/St=0.3/0.2/0.2`, `newton_Q=3`, `beta_s=0.5`, `mu=0.1`.
 
-**Ablations** (one knob at a time, typically seed 42): `--variant uniform`, `--variant stress`, `--mu`, `--psi`, `--uniform-lr`, `--uniform-aggregation`, `--static-beta`, `--lambda-V` (and D/F/St), `--newton-Q`, `--tag` for output suffix.
+## Experiment variants (`--variant`)
 
-## Seeds and experiment matrix
+Implemented in `heteroselect/variants.py`:
 
-| Paper experiment | Seeds | Command |
-| --- | --- | --- |
-| Main table (MNIST, CIFAR-10/100, TinyImageNet) | 42, 43, 44 | `python scripts/train.py --grid main --results-dir results/experiment` |
-| Ablations (compression, mu, psi, stress) | 42 | `python scripts/train.py --grid ablation --results-dir results/ablation` |
-| Component ablations (noV, noD, ...) | 42 | Individual CLI flags + `--tag` (see `results/ablation_v2/`) |
-| Non-IID sweeps | 42 | `--psi` overrides per run |
-
-**Statistical reporting:** CIFAR-10/100 main comparisons use **mean ± std over three seeds** (42–44). Ablations and some auxiliary runs use **seed 42 only** unless stated otherwise.
-
-## Baselines (FedCG et al. — cited, not re-run)
-
-**FedAvg, OptRate, FlexCom, AdaSample, and FedCG** numbers and learning curves in the paper are **taken from the reported results** of Jiang et al. [1] (INFOCOM 2023 Table I, Figs. 1–3, and related simulation text), under the same 100-client simulation setting.
-
-This repository **does not re-implement or re-run** those baselines. They are stored as:
-
-- Scalar bars: `scripts/make_paper_figures.py` (`TABLE1`)
-- Curve checkpoints: `figures-combined/` markdown tables (digitized from [1])
-- INFOCOM-style 4-panel plots: `scripts/make_infocom_figures.py`
-
-**Only HeteRo-Select** is executed via `scripts/train.py`. Comparisons attribute differences to the method, not to a mismatched simulator reimplementation.
-
-**CIFAR-10 target note:** FedCG simulation text [1, Sec. VI-C] reports **5,170 s** to **70%** accuracy; Table I in [1] lists resource to **74%** with **2,480 MB** traffic. Our headline comparison uses the **70%** target and cited **5,170 s / 2,480 MB** pairing documented in the paper.
-
-## Reproducing results
-
-Exact commands for primary runs (seed 42; see `results/` for bundled logs):
-
-| Experiment | Command | Peak Acc. | Target reached | Sim time (s) | Sim traffic (MB) |
-| --- | --- | ---: | --- | ---: | ---: |
-| CIFAR-10 (main) | `python scripts/train.py --dataset cifar10 --psi 0.4 --seed 42` | 73.03% | Round 83 | 2,913 | 2,010 |
-| CIFAR-100 (main) | `python scripts/train.py --dataset cifar100 --psi 40 --seed 42` | 49.44% | N/A @ 100 | 4,456 | 5,015 |
-| MNIST | `python scripts/train.py --dataset mnist --psi 0.4 --seed 42` | 91.94% | Round 5 | 118.3 | 0.61 |
-| TinyImageNet | `python scripts/train.py --dataset tinyimagenet --psi 80 --seed 42` | 33.53% | Round 79 | 4,622 | 7,061 |
-| Ablation: uniform | `python scripts/train.py --dataset cifar10 --variant uniform --seed 42` | 72.22% | Round 86 | 3,009 | 2,124 |
-| Ablation: stress | `python scripts/train.py --dataset cifar10 --variant stress --seed 42` | 71.80% | Round 84 | 3,254 | 1,869 |
-
-For **3-seed** paper averages on CIFAR-10/100, repeat with `--seed 43` and `--seed 44`, then:
-
-```bash
-python scripts/print_table.py results/experiment/
-```
-
-**Batch reproduction:**
-
-```bash
-python scripts/train.py --grid main --results-dir results/experiment
-python scripts/train.py --grid ablation --results-dir results/ablation
-python scripts/train.py --grid all --results-dir results/ --zip
-```
-
-## Regenerating figures
-
-From HeteRo-Select JSON logs (after training or using bundled `results/`):
-
-```bash
-# summary table from any results directory
-python scripts/print_table.py results/experiment/
-
-# basic plots from experiment + ablation JSON
-python scripts/make_figures.py --exp results/experiment/ --abl results/ablation/ --out figs/
-
-# ICDM-style paper figures (overlays cited baselines from [1])
-python scripts/make_paper_figures.py --exp results/experiment/ --abl results/ablation/ --out figs/
-
-# INFOCOM 4-panel comparison style
-python scripts/make_infocom_figures.py --exp results/experiment/ --out figs/
-```
-
-Requires `matplotlib` (and `scipy` for `make_infocom_figures.py`).
-
-Bundled paper figures (if present): `figs/figure-1-resource-overhead.pdf` through `figure-7-stress-test.pdf`.
-
-## Computing environment
-
-Experiments were run on **Linux** with a **single NVIDIA GPU** and **CUDA-enabled PyTorch 2.1+**.
-
-| Component | Version (tested band) |
+| Variant | Effect |
 | --- | --- |
-| Python | 3.10 – 3.11 |
-| PyTorch | >= 2.1 |
-| torchvision | >= 0.16 |
-| numpy | >= 1.24 |
+| `adaptive` | Full HeteRo-Select (primary) |
+| `uniform` | Fixed compression theta_k = theta_t |
+| `stress` | Bandwidth inversely proportional to local loss |
+| `no_V` | Zero loss component V'_k |
+| `no_D` | lambda_D = 0 |
+| `no_FS` | lambda_F = lambda_St = 0 (fairness + staleness off) |
+| `no_newton` | Pure magnitude top-k (newton_Q = 0) |
+| `static_beta` | Fixed error-feedback beta = 0.90 |
+| `uniform_lr` | Uniform local LR (ablation; faster in our runs) |
+| `uniform_agg` | FedAvg-style aggregation weights |
 
-Pinned example: see [`environment.yml`](environment.yml). Record your exact GPU model and driver when reporting reproduction (e.g. NVIDIA RTX 3090, CUDA 12.x).
+CLI equivalents: `--uniform-lr`, `--uniform-aggregation`, `--static-beta 0.9`, `--newton-Q 0`, `--lambda-D 0`, etc.
 
-**Typical wall time per seed (`wall_s` in logs):** ~10 min (MNIST), ~10–15 min (CIFAR-10), ~25–35 min (CIFAR-100), ~3–5 h (TinyImageNet). Simulated time/traffic in paper tables use the analytic model above, not `wall_s`.
+## Seeds and experiment grids
 
-Energy was not measured.
+| Grid | Command | Contents |
+| --- | --- | --- |
+| Main (seeds 42–44) | `python scripts/train.py --grid main --results-dir results/experiment` | MNIST, CIFAR-10/100, TinyImageNet |
+| Protocol ablations | `python scripts/train.py --grid ablation --results-dir results/ablation` | uniform, mu, psi, stress |
+| Component ablations (Table II) | `python scripts/train.py --grid component --results-dir results/ablation_v2` | no_V, no_D, no_FS, no_newton, static_beta, uniform_lr, uniform_agg |
+| All | `python scripts/train.py --grid all --results-dir results/ --zip` | Union of the above |
+
+## Baselines (cited, not re-run)
+
+FedAvg, OptRate, FlexCom, AdaSample, and FedCG scalars/curves are **from Jiang et al. [1]** (digitized in `figures-combined/`). Only HeteRo-Select is executed in this repo.
+
+## Reproducing paper results (seed 42)
+
+### Main runs
+
+| Experiment | Command | Peak | R→70% | Sim time | Sim traffic |
+| --- | --- | ---: | --- | ---: | ---: |
+| CIFAR-10 | `python scripts/train.py --dataset cifar10 --psi 0.4 --seed 42` | 73.03% | 83 | 2,913 | 2,010 |
+| CIFAR-100 | `python scripts/train.py --dataset cifar100 --psi 40 --seed 42` | 49.44% | — | 4,456 | 5,015 |
+| MNIST | `python scripts/train.py --dataset mnist --psi 0.4 --seed 42` | 91.94% | 5 | 118.3 | 0.61 |
+| TinyImageNet | `python scripts/train.py --dataset tinyimagenet --psi 80 --seed 42` | 33.53% | 79 | 4,622 | 7,061 |
+
+### Table II component ablations (CIFAR-10, seed 42)
+
+| Variant | Command suffix | Peak | Final | R→70% | Time | Traffic |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| w/o V'_k | `--variant no_V` | 72.71% | 72.71% | 85 | 2,972 | 2,050 |
+| w/o D_k | `--variant no_D` | 72.25% | 71.10% | 85 | 2,868 | 2,047 |
+| w/o F', St' | `--variant no_FS` | 72.08% | 71.75% | 82 | 2,850 | 1,998 |
+| Pure magnitude top-k | `--variant no_newton` | 73.24% | 73.24% | 79 | 2,725 | 1,955 |
+| Static beta=0.90 | `--variant static_beta` | 72.13% | 71.97% | 83 | 2,865 | 2,005 |
+| Uniform LR | `--variant uniform_lr` | 74.08% | 74.08% | 70 | 2,458 | 1,802 |
+| Uniform aggregation | `--variant uniform_agg` | 72.28% | 72.28% | 83 | 2,901 | 2,005 |
+
+Bundled logs: `results/ablation_v2/`. Paper Sec. VI-B notes uniform LR can outperform score-adaptive LR in this ablation; primary Table I runs still use score-adaptive LR.
+
+### Protocol ablations (Table II, upper block)
+
+| Variant | Peak | R→70% | Time | Traffic |
+| --- | ---: | ---: | ---: | ---: |
+| Uniform compression | 72.22% | 86 | 3,009 | 2,124 |
+| Adaptive (primary) | 73.03% | 83 | 2,913 | 2,010 |
+| mu=0 | 64.36% | — | — | — |
+| mu=0.01 | 71.92% | 81 | 2,864 | 1,967 |
+| mu=0.5 | 54.57% | — | — | — |
+| psi=0.2 | 73.88% | 76 | 2,746 | 1,921 |
+| psi=0.6 | 68.18% | — | — | — |
+| stress | 71.80% | 84 | 3,254 | 1,869 |
+
+Bundled logs: `results/ablation/`.
+
+## Figures
+
+Bundled paper figures: `figs/figure-1-resource-overhead.pdf` … `figure-7-stress-test.pdf`.
+
+Regenerate result tables from JSON:
+
+```bash
+python scripts/print_table.py results/experiment/
+python scripts/print_table.py results/ablation_v2/
+```
 
 ## Project layout
 
 ```text
-heteroselect/       # core package (config, data, models, scoring, compression, trainer, ...)
+heteroselect/
+  config.py, data.py, models.py, scoring.py, compression.py
+  client.py, server.py, trainer.py, simulator.py, variants.py
 scripts/
-  train.py          # training driver
-  print_table.py    # aggregate JSON summaries
-  make_figures.py
-  make_paper_figures.py
-  make_infocom_figures.py
+  train.py          # all experiments and ablation grids
+  print_table.py
 configs/default.yaml
 tests/test_smoke.py
-results/            # bundled per-run JSON logs (optional to regenerate)
-figures-combined/   # digitized baseline curves from [1]
-figs/               # generated paper figures (optional)
+results/            # bundled JSON logs
+figures-combined/   # cited FedCG baseline curves
+figs/               # bundled paper figures (gitignored; regenerate locally)
 ```
 
 ## References
 
-[1] Z. Jiang, Y. Xu, H. Xu, Z. Wang, and C. Qian, "Federated learning with client selection and gradient compression in heterogeneous edge systems," in *IEEE INFOCOM*, 2023. (Extended journal version: *IEEE Trans. Mobile Comput.*, 2024.)
+[1] Z. Jiang et al., "Federated learning with client selection and gradient compression in heterogeneous edge systems," *IEEE INFOCOM*, 2023; *IEEE Trans. Mobile Comput.*, 2024.
 
 ## Citation
 
 ```bibtex
-@article{masud2026heteroselect,
-  title   = {HeteRo-Select: Informativeness-Aware Client Selection and Gradient
-             Compression for Communication-Efficient Federated Learning},
+@inproceedings{masud2026heteroselect,
+  title   = {HeteRo-Select: Informativeness as the Participation Driver in
+             Heterogeneous Federated Learning},
   author  = {Masud, M. A. and Jahin, Md Abrar and Hasan, M.},
-  journal = {Manuscript under review},
+  booktitle = {IEEE International Conference on Data Mining (ICDM)},
   year    = {2026}
 }
 ```

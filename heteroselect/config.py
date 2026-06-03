@@ -97,3 +97,17 @@ def ablation_experiments() -> list[dict]:
         dict(dataset="cifar10", psi=0.6, seed=42),
         dict(dataset="cifar10", psi=0.4, seed=42, variant="stress"),
     ]
+
+
+def component_ablation_experiments() -> list[dict]:
+    """Paper Table II: score components and design-choice ablations (seed 42)."""
+    base = dict(dataset="cifar10", psi=0.4, seed=42)
+    return [
+        dict(**base, variant="no_V"),
+        dict(**base, variant="no_D"),
+        dict(**base, variant="no_FS"),
+        dict(**base, variant="no_newton"),
+        dict(**base, variant="static_beta"),
+        dict(**base, variant="uniform_lr"),
+        dict(**base, variant="uniform_agg"),
+    ]

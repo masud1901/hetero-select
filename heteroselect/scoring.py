@@ -99,6 +99,8 @@ def score_clients(
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, np.ndarray]]:
     K = len(loaders)
     V, losses = compute_loss_scores(model, loaders, eval_batches, device)
+    if fl.get("no_V"):
+        V = np.zeros(len(loaders))
     D = compute_diversity_scores(K, server_grad_avg, client_grads_prev)
     Fc = compute_fairness_scores(K, sel_counts, rnd)
     St = compute_staleness_scores(K, last_selected, rnd, fl["gamma_St"])

@@ -41,6 +41,7 @@ logs/
 *.log
 
 *.pdf
+hetero-select-ablation.py
 
 # --- LaTeX build artefacts (only relevant if the paper is added later) ---
 *.aux
